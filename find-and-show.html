@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="en" dir="lrt">
+
+<head>
+<title>Firebase firestore</title>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css">
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.0/jquery.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js"></script>
+  <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js"></script>
+</head>
+<body>
+ <div class="container">
+		
+		<h1>Firebase firestore</h1>
+		<div class="row">
+			<button type="button" class="btn btn-light" onclick="docAdd()">Add product</button>
+		</div>
+
+		<div class="row">
+			<form class="form-inline">
+			  <select class="custom-select my-2 mr-sm-2" id="select-Cities">
+			    <option selected>Cities...</option>
+			    <option value="Pattaya">Pattaya</option>
+			    <option value="Huay Yai">Huay Yai</option>
+			    <option value="Na Chom Thian">Na Chom Thian</option>
+			    <option value="Laem Chabang">Laem Chabang</option>
+			    <option value="Chiangmai">Chiangmai</option>
+			  </select>
+			  <select class="custom-select my-2 mr-sm-2" id="select-Bedrooms">
+			    <option selected>Bedrooms...</option>
+			    <option value="1">1</option>
+			    <option value="2">2</option>
+			    <option value="3">3</option>
+			    <option value="4">4</option>
+			    <option value="5">5</option>
+			  </select>
+			  <select class="custom-select my-2 mr-sm-2" id="select-Bathrooms">
+			    <option selected>Bathrooms...</option>
+			    <option value="1">1</option>
+			    <option value="2">2</option>
+			    <option value="3">3</option>
+			    <option value="4">4</option>
+			    <option value="5">5</option>
+			  </select>
+			  <select class="custom-select my-2 mr-sm-2" id="select-Garages">
+			    <option selected>Garages...</option>
+			    <option value="1">1</option>
+			    <option value="2">2</option>
+			    <option value="3">3</option>
+			    <option value="4">4</option>
+			    <option value="5">5</option>
+			  </select>
+
+			  <button type="button" class="btn btn-primary my-1" onclick="docSearchFirst()">Search</button>
+			</form>
+		</div>
+
+		<div class="row">
+			<form class="form-inline">
+			  <div class="form-group">
+			    <label class="mr-4">Sort by</label>
+			    <select class="custom-select my-2 mr-sm-2" id="select-sort">
+				    <option value="update" selected>update</option>
+				    <option value="price: low-high">price: low-high</option>
+				    <option value="price: high-low">price: high-low</option>
+				  </select>
+			  </div>
+			</form>
+		</div>
+
+		<div class="row" id="contentShow">
+
+		</div>
+
+		<div class="row">
+			<button type="button" class="btn btn-info d-none mt-4" id="nextSearch" onclick="docSearchNext()">Next..</button>
+		</div>
+		
+
+	</div>
+
+  <!-- The core Firebase JS SDK is always required and must be listed first -->
+  <script src="https://www.gstatic.com/firebasejs/6.2.0/firebase-app.js"></script>
+	<script src="https://www.gstatic.com/firebasejs/6.2.0/firebase-firestore.js"></script>
+  <!-- TODO: Add SDKs for Firebase products that you want to use
+       https://firebase.google.com/docs/web/setup#config-web-app -->
+  <script>
+    // Your web app's Firebase configuration
+    var firebaseConfig = {
+	    apiKey: "AIzaSyDOz_a-CO1FPWvNO322BpUN9hgdtv2GsKU",
+	    authDomain: "test-702f6.firebaseapp.com",
+	    databaseURL: "https://test-702f6.firebaseio.com",
+	    projectId: "test-702f6",
+	    storageBucket: "test-702f6.appspot.com",
+	    messagingSenderId: "860182684889",
+	    appId: "1:860182684889:web:05aa165127f58604"
+	  };
+    // Initialize Firebase
+    firebase.initializeApp(firebaseConfig);
+
+    var db = firebase.firestore();
+
+  </script>
+  <!-- <script src="app.js" charset="utf-8"></script> -->
+  <script>
+  	var startAt = null
+  	var nextFlag = false
+
+  	docSearchNext = () => {
+  		nextFlag = true
+  		docSearch()
+  	}
+
+  	docSearchFirst = () => {  	
+  		startAt = null
+  		$('#contentShow').html('')
+  		$('#nextSearch').attr("disabled", false);
+  		docSearch()
+  	}
+
+		docSearch = () => {
+
+			let limit = 9 // จำนวนที่แสดง
+			
+			// รับค่าจากฟอร์มค้นหา
+			let city = $('#select-Cities').val()
+			let bedroom = $('#select-Bedrooms').val()
+			let bathroom = $('#select-Bathrooms').val()
+			let garage = $('#select-Garages').val()
+
+			// รับค่าจากฟอร์มจัดเรียง
+			let sort = $('#select-sort').val()
+			let orderName, orderSort
+			// asc เรียงจากน้อยไปหามาก
+			// desc เรียงจากมากไปหาน้อย
+			if(sort == "update") {
+				orderName = "updateDate"
+				orderSort = "asc"
+			}
+			else if(sort == "price: low-high") {
+				orderName = "price"
+				orderSort = "asc"
+			}
+			else if(sort == "price: high-low") {
+				orderName = "price"
+				orderSort = "desc"
+			}
+
+			console.log('city,bedroom,bathroom,garage =>', city,bedroom,bathroom,garage)
+
+			let cityOpr = "=="
+			let bedroomOpr = "=="
+			let bathroomOpr = "=="
+			let garageOpr = "=="
+
+			let cityWare = "city"
+			let bedroomWare = "bedroom"
+			let bathroomWare = "bathroom"
+			let garageWare = "garage"
+
+			// ข้อแม้การค้นหาทั้งหมด
+			if(city == 'Cities...') { cityWare = "status"; city = "published"; }
+		  if(bedroom == 'Bedrooms...') { bedroomWare = "status"; bedroom = "published"; }			
+		  if(bathroom == 'Bathrooms...') { bathroomWare = "status"; bathroom = "published"; }
+		  if(garage == 'Garages...') { garageWare = "status"; garage = "published"; }
+			console.log(cityWare, cityOpr, city)
+			console.log('orderName, orderSort =>', orderName, orderSort)
+
+			// firestore api ค้นหา
+			db.collection("product")		
+
+				// ค้นหา	
+				.where(cityWare, cityOpr, city)
+		  	.where(bedroomWare, bedroomOpr, bedroom)
+		  	.where(bathroomWare, bathroomOpr, bathroom)
+		  	.where(garageWare, garageOpr, garage)
+
+		  	// จัดเรียง
+		  	.orderBy(orderName, orderSort)
+		  	.startAt(startAt)
+
+		  	// จำนวนที่แสดง
+		  	.limit(limit)
+
+		    .get()
+		    .then(function(querySnapshot) {		 
+		    	startAt = querySnapshot.docs[querySnapshot.docs.length-1]
+
+		    	console.log("querySnapshot.size --> ", querySnapshot.size);
+
+		    	if(querySnapshot.size < limit) {
+		    		console.log("querySnapshot.size < limit");
+		    		$('#nextSearch').attr("disabled", true);
+		    	} else {
+		    		$('#nextSearch').removeClass("d-none");
+		    	}
+
+	        querySnapshot.forEach(function(doc) {
+            // doc.data() is never undefined for query doc snapshots
+            console.log(doc.id, " --> ", doc.data());
+
+            // ตรวจสอบข้อมูลซ้ำจากปุ่ม next
+            if(nextFlag) {
+            	nextFlag = false
+            	return
+            }
+
+            // จักการการ์ด นำข้อมูลไปแสดง
+            let card = '<div class="card col-3 mt-3 mr-3" > '
+						card += '  <img src="'+doc.data().image+'" class="card-img-top" alt="..."> '
+						card += '  <div class="card-body "> '
+						card += '    <h5 class="card-title">'+doc.data().name+'</h5> '
+						card += '    <p class="card-text">Some quick example text to build on the card title and make up the bulk of the ontent.</p> '
+						card += '  </div> '
+						card += '  <ul class="list-group list-group-flush"> '
+						card += '    <li class="list-group-item">'+doc.data().city+' city</li> '
+						card += '    <li class="list-group-item">'+doc.data().bedroom+' bedroom</li> '
+						card += '    <li class="list-group-item">'+doc.data().bathroom+' bathroom</li> '
+						card += '    <li class="list-group-item">'+doc.data().garage+' garage</li> '
+						card += '    <li class="list-group-item">'+doc.data().price+' price</li> '
+						card += '  </ul> '
+						card += '</div> '
+
+						// นำข้อมูลไปแสดง
+						$('#contentShow').append(card);
+
+	        });
+		    })
+		    .catch(function(error) {
+		      console.log("Error getting documents: ", error);
+		    });
+		}
+
+  	docAdd = () => {
+			let cities = ['Pattaya', 'Huay Yai', 'Na Chom Thian', 'Laem Chabang', 'Chiangmai']
+			let bedrooms = ['1','2','3','4','5']
+			let bathrooms = ['1','2','3','4','5']
+			let garages = ['1','2','3','4','5']
+
+			let min = 10000; max = 100000;
+			for (let i = 10 - 1; i >= 0; i--) {
+				let city = cities[Math.floor(Math.random()*cities.length)]			
+				let bedroom = bedrooms[Math.floor(Math.random()*bedrooms.length)]			
+				let bathroom = bathrooms[Math.floor(Math.random()*bathrooms.length)]			
+				let garage = garages[Math.floor(Math.random()*garages.length)]
+				let price = Math.floor(Math.random() * (max - min + 1) ) + min;
+
+				db.collection("product").add({
+				  city: city,
+				  bedroom: bedroom,
+				  bathroom: bathroom,
+				  garage: garage,
+				  updateDate: firebase.firestore.Timestamp.fromDate(new Date("December 10, 1815")),
+				  status: "published",
+				  price: price,
+				  name: makeid(10),
+				  image: "https://firebasestorage.googleapis.com/v0/b/buildok.appspot.com/o/pro%2Fjx7oyb7nb9mv4mw1dzc%2Fimage%2Fs__5144589.jpg?alt=media&token=7e625fb9-3ecd-4f96-9696-276d8b831f16",
+				})
+				.then(function(docRef) {
+				    console.log("Document written with ID: ", docRef.id);
+				})
+				.catch(function(error) {
+				    console.error("Error adding document: ", error);
+				});
+			}
+
+
+		}
+
+		function makeid(length) {
+		   var result           = '';
+		   var characters       = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+		   var charactersLength = characters.length;
+		   for ( var i = 0; i < length; i++ ) {
+		      result += characters.charAt(Math.floor(Math.random() * charactersLength));
+		   }
+		   return result;
+		}
+
+		console.log(makeid(5));
+
+  </script>
+
+  </body>
+</html>
